@@ -4,6 +4,9 @@ import pickle
 
 import matplotlib.pyplot as plt
 
+from detection_functions.Vehicle_Classification import *
+from detection_functions.Vehicle import *
+
 from calibration.correctDistortion import correct_distortion
 from detection_functions.sliding_window import *
 from toolbox.draw_on_image import *
@@ -23,7 +26,6 @@ DIST=None
 VERBOSE=False
 
 def process_image(raw_image, correct_distortion=False):
-    global heatmap_frame_collection
     img_shape = raw_image.shape
 
     if correct_distortion:
@@ -38,74 +40,12 @@ def process_image(raw_image, correct_distortion=False):
 
     draw_image = np.copy(process_image)
 
-    # Uncomment the following line if you extracted training
-    # data from .png images (scaled 0 to 1 by mpimg) and the
-    # image you are searching is a .jpg (scaled 0 to 255)
-    # image = image.astype(np.float32)/255
-
-    ### TODO: Tweak these parameters and see how the results change.
-    color_space = 'LUV'  # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
-    orient = 12  # HOG orientations
-    pix_per_cell = 8  # HOG pixels per cell
-    cell_per_block = 2  # HOG cells per block
-    hog_channel = 'ALL'  # Can be 0, 1, 2, or "ALL"
-    spatial_size = (32, 32)  # Spatial binning dimensions
-    hist_bins = 32  # Number of histogram bins
-    spatial_feat = True  # Spatial features on or off
-    hist_feat = True  # Histogram features on or off
-    hog_feat = True  # HOG features on or off
-
-
-    hot_windows_collection = None
-    y_start_stop = [510, 720]  # Min and max in y to search in slide_window()
-    xy_window = (360, 360)
-    xy_overlap = (0.8, 0.8)
-    y_position = y_start_stop[1]
-    x_position = int(img_shape[1]/2)
-
-    while (xy_window[0] > 80): #& (y_position > y_start_stop[0]):
-        # print(xy_window,y_start_stop)
-        y_step = int(xy_window[1] * (1.0 - xy_overlap[1]))
-
-        #print(y_position,xy_window,[y_position - xy_window[0], y_position])
-        #print([int(img_shape[1]/2)-x_position, int(img_shape[1]/2)+x_position])
-
-        windows = slide_window(process_image, x_start_stop=[int((img_shape[1]/2)-x_position), int((img_shape[1]/2)+x_position)], y_start_stop=[y_position - xy_window[0], y_position],
-                               xy_window=xy_window, xy_overlap=xy_overlap)
-
-        test = draw_boxes(process_image, windows)
-        cv2.imshow('Windows', test)
-        cv2.waitKey(1)
-
-        hot_windows = search_windows(process_image, windows, svc, X_scaler, color_space=color_space,
-                                     spatial_size=spatial_size, hist_bins=hist_bins,
-                                     orient=orient, pix_per_cell=pix_per_cell,
-                                     cell_per_block=cell_per_block,
-                                     hog_channel=hog_channel, spatial_feat=spatial_feat,
-                                     hist_feat=hist_feat, hog_feat=True)
-
-        #l, u, v = cv2.split(cv2.cvtColor(process_image, cv2.COLOR_RGB2LUV))
-        #test = draw_boxes(v, hot_windows)
-        #cv2.imshow('Windows', test)
-        #cv2.waitKey(1)
-
-        if hot_windows_collection == None:
-            hot_windows_collection = hot_windows
-        else:
-            hot_windows_collection = hot_windows_collection + hot_windows
-
-        y_position = y_position - y_step
-        width = int(((1. - ((y_start_stop[1] - y_position) / 210)) * (360 - 120)) + 120)
-        xy_window = (width, width)
-        x_position = int((((1. - ((y_start_stop[1] - y_position) / 210)) * (img_shape[1]*4 - img_shape[1]*3/2)) + img_shape[1]*3/2)/2)
-        if x_position > (img_shape[1]/2):
-            x_position = int(img_shape[1] / 2)
-
-
+    vehicle_collection.initalize_image(img_shape=process_image.shape, y_start_stop=[420, 720], xy_window=(360, 360), xy_overlap=(0.25, 0.9))
+    vehicle_collection.find_hot_windows(process_image, vehicle_classification)
 
     #hot_window_frame_collection_conc = np.concatenate(hot_window_frame_collection)
     heatmap = np.zeros_like(process_image[:, :, 0]).astype(np.float)
-    heatmap = add_heat(heatmap, hot_windows_collection)
+    heatmap = add_heat(heatmap, vehicle_collection.hot_windows)
 
     if heatmap_frame_collection == None:
         heatmap_frame_collection = np.array(heatmap,ndmin=3)
@@ -138,9 +78,14 @@ if __name__ == "__main__":
     VERBOSE = True
     LEARN_NEW_CLASSIFIER = False
 
+    vehicle_classification = Vehicle_Classification()
+    vehicle_classification.train_classifier(LEARN_NEW_CLASSIFIER)
+
+    vehicle_collection = Vehicle_Collection()
+
     heatmap_frame_collection = None
 
-    svc, X_scaler = train_classifier(learn_new_classifier=LEARN_NEW_CLASSIFIER)
+
 
     #image = cv2.imread('./test_images/test1.jpg')
     #image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -151,8 +96,8 @@ if __name__ == "__main__":
     #cv2.imwrite('../output_images/test2_applied_lane_lines.jpg', combo)
 
     video_output = './project_video_calc_1.mp4'
-    clip1 = VideoFileClip('./project_video.mp4')
-    #clip1 = VideoFileClip('./test_video.mp4')
+    #clip1 = VideoFileClip('./project_video.mp4')
+    clip1 = VideoFileClip('./test_video.mp4')
     #clip1 = VideoFileClip('../harder_challenge_video.mp4')
 
     white_clip_1 = clip1.fl_image(process_image)  # NOTE: this function expects color images!!

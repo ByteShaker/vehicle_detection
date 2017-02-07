@@ -91,7 +91,6 @@ def search_windows(img, windows, clf, scaler, color_space='RGB',
             else:
                 feature_image = np.copy(img)
             current_window_area = ((0,window[0][1]),(feature_image.shape[1],window[1][1]))
-            #print(current_window_area)
             test_area = feature_image[current_window_area[0][1]:current_window_area[1][1], current_window_area[0][0]:current_window_area[1][0]]
             scale = min(test_area.shape[0], test_area.shape[1]) / 64  # at most 64 rows and columns
             resized_test_area = cv2.resize(test_area, (np.int(test_area.shape[1] / scale), np.int(test_area.shape[0] / scale)))
@@ -133,6 +132,7 @@ def search_windows(img, windows, clf, scaler, color_space='RGB',
     # 8) Return windows for positive detections
     return on_windows
 
+
 def add_heat(heatmap, bbox_list):
     bbox_list = np.array(bbox_list)
 
@@ -144,6 +144,7 @@ def add_heat(heatmap, bbox_list):
 
     # Return updated heatmap
     return heatmap
+
 
 def apply_threshold(heatmap, threshold):
     # Zero out pixels below the threshold

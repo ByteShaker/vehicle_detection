@@ -1,20 +1,20 @@
-import numpy as np
+from toolbox.draw_on_image import *
 
 # Define a function that takes an image,
 # start and stop positions in both x and y,
 # window size (x and y dimensions),
 # and overlap fraction (for both x and y)
-def slide_window(img, x_start_stop=[None, None], y_start_stop=[None, None],
+def slide_window(img_shape, x_start_stop=[None, None], y_start_stop=[None, None],
                  xy_window=(64, 64), xy_overlap=(0.5, 0.5)):
     # If x and/or y start/stop positions not defined, set to image size
     if x_start_stop[0] == None:
         x_start_stop[0] = 0
     if x_start_stop[1] == None:
-        x_start_stop[1] = img.shape[1]
+        x_start_stop[1] = img_shape[1]
     if y_start_stop[0] == None:
         y_start_stop[0] = 0
     if y_start_stop[1] == None:
-        y_start_stop[1] = img.shape[0]
+        y_start_stop[1] = img_shape[0]
     # Compute the span of the region to be searched
     xspan = x_start_stop[1] - x_start_stop[0]
     yspan = y_start_stop[1] - y_start_stop[0]
@@ -36,8 +36,8 @@ def slide_window(img, x_start_stop=[None, None], y_start_stop=[None, None],
             # Calculate window position
             startx = xs * nx_pix_per_step + x_start_stop[0]
             endx = startx + xy_window[0]
-            if endx > img.shape[1]:
-                delta_x = endx - img.shape[1]
+            if endx > img_shape[1]:
+                delta_x = endx - img_shape[1]
                 endx = endx - delta_x
                 startx = startx - delta_x
             starty = ys * ny_pix_per_step + y_start_stop[0]
@@ -48,3 +48,50 @@ def slide_window(img, x_start_stop=[None, None], y_start_stop=[None, None],
     # Return the list of windows
     return window_list
 
+def perspective_width(new_y,y_start_stop=[420, 720],bottom_width=360, top_width=32):
+    new_width = int(((1. - ((y_start_stop[1] - new_y) / (y_start_stop[1] - y_start_stop[0]))) * (bottom_width - top_width)) + top_width)
+    return int(new_width)
+
+def slide_precheck(img_shape, y_start_stop=[420, 720], xy_window=(360, 360), xy_overlap = (0.25, 0.9)):
+
+    y_position = y_start_stop[1]
+    x_position = 0
+
+    windows_collection = None
+
+    while (xy_window[0] >= 32):
+        y_step = int(xy_window[0] * (1.0 - xy_overlap[1]))
+
+        windows = slide_window(img_shape, x_start_stop=[x_position, img_shape[1]-x_position],
+                                           y_start_stop=[y_position - xy_window[0], y_position],
+                                           xy_window=xy_window, xy_overlap=xy_overlap)
+
+        y_position = y_position - y_step
+        width = perspective_width(y_position,y_start_stop=[420, 720],bottom_width=500, top_width=32)
+        xy_window = (width, width)
+
+        x_width = perspective_width(y_position,y_start_stop=[420, 720],bottom_width=img_shape[1]*15, top_width=32*15)
+        if x_width > (img_shape[1]):
+            x_position = 0
+        else:
+            x_position = int((img_shape[1] - x_width)/2)
+
+        if windows_collection == None:
+            windows_collection = windows
+        else:
+            windows_collection = windows_collection + windows
+
+    return windows_collection
+
+
+if __name__ == "__main__":
+
+    image = cv2.imread('../test_images/test1.jpg')
+    img_shape = image.shape
+    windows_collection = slide_precheck(img_shape)
+
+    print(len(windows_collection))
+
+    windows_collection = draw_boxes(image, windows_collection)
+    cv2.imshow('windows_collection', windows_collection)
+    cv2.waitKey()
