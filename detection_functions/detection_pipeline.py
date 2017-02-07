@@ -134,6 +134,8 @@ def search_windows(img, windows, clf, scaler, color_space='RGB',
     return on_windows
 
 def add_heat(heatmap, bbox_list):
+    bbox_list = np.array(bbox_list)
+
     # Iterate through list of bboxes
     for box in bbox_list:
         # Add += 1 for all pixels inside each bbox

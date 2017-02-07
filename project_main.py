@@ -23,6 +23,7 @@ DIST=None
 VERBOSE=False
 
 def process_image(raw_image, correct_distortion=False):
+    global heatmap_frame_collection
     img_shape = raw_image.shape
 
     if correct_distortion:
@@ -56,19 +57,25 @@ def process_image(raw_image, correct_distortion=False):
 
 
     hot_windows_collection = None
-    y_start_stop = [440, 720]  # Min and max in y to search in slide_window()
+    y_start_stop = [510, 720]  # Min and max in y to search in slide_window()
     xy_window = (360, 360)
-    xy_overlap = (0.8, 0.75)
+    xy_overlap = (0.8, 0.8)
     y_position = y_start_stop[1]
+    x_position = int(img_shape[1]/2)
 
-    while (xy_window[0] > 40) & (y_position > y_start_stop[0]):
+    while (xy_window[0] > 80): #& (y_position > y_start_stop[0]):
         # print(xy_window,y_start_stop)
         y_step = int(xy_window[1] * (1.0 - xy_overlap[1]))
 
         #print(y_position,xy_window,[y_position - xy_window[0], y_position])
+        #print([int(img_shape[1]/2)-x_position, int(img_shape[1]/2)+x_position])
 
-        windows = slide_window(process_image, x_start_stop=[None, None], y_start_stop=[y_position - xy_window[0], y_position],
+        windows = slide_window(process_image, x_start_stop=[int((img_shape[1]/2)-x_position), int((img_shape[1]/2)+x_position)], y_start_stop=[y_position - xy_window[0], y_position],
                                xy_window=xy_window, xy_overlap=xy_overlap)
+
+        test = draw_boxes(process_image, windows)
+        cv2.imshow('Windows', test)
+        cv2.waitKey(1)
 
         hot_windows = search_windows(process_image, windows, svc, X_scaler, color_space=color_space,
                                      spatial_size=spatial_size, hist_bins=hist_bins,
@@ -88,13 +95,29 @@ def process_image(raw_image, correct_distortion=False):
             hot_windows_collection = hot_windows_collection + hot_windows
 
         y_position = y_position - y_step
-        x_width = int(((1. - ((y_start_stop[1] - y_position) / 280)) * (360 - 40)) + 40)
-        xy_window = (x_width, x_width)
+        width = int(((1. - ((y_start_stop[1] - y_position) / 210)) * (360 - 120)) + 120)
+        xy_window = (width, width)
+        x_position = int((((1. - ((y_start_stop[1] - y_position) / 210)) * (img_shape[1]*4 - img_shape[1]*3/2)) + img_shape[1]*3/2)/2)
+        if x_position > (img_shape[1]/2):
+            x_position = int(img_shape[1] / 2)
 
+
+
+    #hot_window_frame_collection_conc = np.concatenate(hot_window_frame_collection)
     heatmap = np.zeros_like(process_image[:, :, 0]).astype(np.float)
     heatmap = add_heat(heatmap, hot_windows_collection)
 
-    heat_thresh = apply_threshold(heatmap,3)
+    if heatmap_frame_collection == None:
+        heatmap_frame_collection = np.array(heatmap,ndmin=3)
+    elif heatmap_frame_collection.shape[0] < 5:
+        heatmap_frame_collection = np.append(heatmap_frame_collection,np.array(heatmap,ndmin=3), axis=0)
+    else:
+        heatmap_frame_collection = np.roll(heatmap_frame_collection, -1, axis=0)
+        heatmap_frame_collection[-1,:] = np.array(heatmap,ndmin=2)
+
+    heatmap = np.mean(heatmap_frame_collection,axis=0)
+
+    heat_thresh = apply_threshold(heatmap,4)
     labels = label(heat_thresh)
 
     draw_image = draw_labeled_bboxes(draw_image,labels)
@@ -107,13 +130,15 @@ def process_image(raw_image, correct_distortion=False):
     cv2.imshow('Labels', draw_image)
     cv2.waitKey(1)
 
-    draw_image = cv2.cvtColor(draw_image, cv2.COLOR_BGR2RGB)
+    #draw_image = cv2.cvtColor(draw_image, cv2.COLOR_BGR2RGB)
 
     return draw_image
 
 if __name__ == "__main__":
     VERBOSE = True
     LEARN_NEW_CLASSIFIER = False
+
+    heatmap_frame_collection = None
 
     svc, X_scaler = train_classifier(learn_new_classifier=LEARN_NEW_CLASSIFIER)
 
@@ -125,9 +150,9 @@ if __name__ == "__main__":
 
     #cv2.imwrite('../output_images/test2_applied_lane_lines.jpg', combo)
 
-    video_output = './project_video_calc.mp4'
-    #clip1 = VideoFileClip('./project_video.mp4')
-    clip1 = VideoFileClip('./test_video.mp4')
+    video_output = './project_video_calc_1.mp4'
+    clip1 = VideoFileClip('./project_video.mp4')
+    #clip1 = VideoFileClip('./test_video.mp4')
     #clip1 = VideoFileClip('../harder_challenge_video.mp4')
 
     white_clip_1 = clip1.fl_image(process_image)  # NOTE: this function expects color images!!
