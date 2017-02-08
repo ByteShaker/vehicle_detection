@@ -52,14 +52,15 @@ def perspective_width(new_y,y_start_stop=[420, 720],bottom_width=360, top_width=
     new_width = int(((1. - ((y_start_stop[1] - new_y) / (y_start_stop[1] - y_start_stop[0]))) * (bottom_width - top_width)) + top_width)
     return int(new_width)
 
-def slide_precheck(img_shape, y_start_stop=[420, 720], xy_window=(360, 360), xy_overlap = (0.25, 0.9)):
+def slide_precheck(img_shape, y_start_stop=[436, 720], xy_window=(440, 440), xy_overlap = (0.0, 0.8)):
 
     y_position = y_start_stop[1]
     x_position = 0
+    bottom_width = xy_window[0]
 
-    windows_collection = None
+    windows_collection = []
 
-    while (xy_window[0] >= 32):
+    while (xy_window[0] >= 50):
         y_step = int(xy_window[0] * (1.0 - xy_overlap[1]))
 
         windows = slide_window(img_shape, x_start_stop=[x_position, img_shape[1]-x_position],
@@ -67,19 +68,19 @@ def slide_precheck(img_shape, y_start_stop=[420, 720], xy_window=(360, 360), xy_
                                            xy_window=xy_window, xy_overlap=xy_overlap)
 
         y_position = y_position - y_step
-        width = perspective_width(y_position,y_start_stop=[420, 720],bottom_width=500, top_width=32)
+        width = perspective_width(y_position,y_start_stop=y_start_stop,bottom_width=bottom_width, top_width=32)
         xy_window = (width, width)
 
-        x_width = perspective_width(y_position,y_start_stop=[420, 720],bottom_width=img_shape[1]*15, top_width=32*15)
+
+
+        x_width = perspective_width(y_position,y_start_stop=y_start_stop,bottom_width=img_shape[1]*15, top_width=32*15)
+
         if x_width > (img_shape[1]):
             x_position = 0
         else:
             x_position = int((img_shape[1] - x_width)/2)
 
-        if windows_collection == None:
-            windows_collection = windows
-        else:
-            windows_collection = windows_collection + windows
+        windows_collection.append(windows)
 
     return windows_collection
 
@@ -89,8 +90,6 @@ if __name__ == "__main__":
     image = cv2.imread('../test_images/test1.jpg')
     img_shape = image.shape
     windows_collection = slide_precheck(img_shape)
-
-    print(len(windows_collection))
 
     windows_collection = draw_boxes(image, windows_collection)
     cv2.imshow('windows_collection', windows_collection)

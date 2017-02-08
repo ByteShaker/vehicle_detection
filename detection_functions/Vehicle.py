@@ -15,10 +15,10 @@ class Vehicle_Collection():
 
         self.detected_vehicles = []
 
-    def initalize_image(self, img_shape=(720,1280), y_start_stop=[420, 720], xy_window=(360, 360), xy_overlap = (0.5, 0.5)):
+    def initalize_image(self, img_shape=(720,1280), y_start_stop=[436, 720], xy_window=(440, 440), xy_overlap = (0.5, 0.5)):
         self.image_initialized = True
         self.img_shape = img_shape
-        self.precheck_windows = slide_precheck(img_shape, y_start_stop=y_start_stop, xy_window=xy_window, xy_overlap = xy_overlap)
+        self.precheck_windows = slide_precheck(img_shape, y_start_stop=y_start_stop, xy_window=xy_window, xy_overlap=xy_overlap)
 
     def find_hot_windows(self, process_image, vehicle_classification):
         self.hot_windows = search_windows(process_image, self.precheck_windows, vehicle_classification.classifier, vehicle_classification.X_scaler, color_space=vehicle_classification.color_space,

@@ -41,29 +41,29 @@ def process_image(raw_image, correct_distortion=False):
     draw_image = np.copy(process_image)
 
     if vehicle_collection.image_initialized == False:
-        vehicle_collection.initalize_image(img_shape=process_image.shape, y_start_stop=[420, 720], xy_window=(360, 360), xy_overlap=(0.75, 0.85))
+        vehicle_collection.initalize_image(img_shape=process_image.shape, y_start_stop=[440, 720], xy_window=(360, 360), xy_overlap=(0.75, 0.6))
     vehicle_collection.find_hot_windows(process_image, vehicle_classification)
 
-    #hot_window_frame_collection_conc = np.concatenate(hot_window_frame_collection)
-    heatmap = np.zeros_like(process_image[:, :, 0]).astype(np.float)
-    heatmap = add_heat(heatmap, vehicle_collection.hot_windows)
+    for stripe_index in range(len(vehicle_collection.hot_windows)):
+        heatmap = np.zeros_like(process_image[:, :, 0]).astype(np.float)
+        heatmap = add_heat(heatmap, vehicle_collection.hot_windows[stripe_index])
 
-    global heatmap_frame_collection
-    if heatmap_frame_collection == None:
-        heatmap_frame_collection = np.array(heatmap,ndmin=3)
-    elif heatmap_frame_collection.shape[0] < 5:
-        heatmap_frame_collection = np.append(heatmap_frame_collection,np.array(heatmap,ndmin=3), axis=0)
-    else:
-        heatmap_frame_collection = np.roll(heatmap_frame_collection, -1, axis=0)
-        heatmap_frame_collection[-1,:] = np.array(heatmap,ndmin=2)
+        #global heatmap_frame_collection
+        #if heatmap_frame_collection == None:
+        #    heatmap_frame_collection = np.array(heatmap,ndmin=3)
+        #elif heatmap_frame_collection.shape[0] < 5:
+        #    heatmap_frame_collection = np.append(heatmap_frame_collection,np.array(heatmap,ndmin=3), axis=0)
+        #else:
+        #    heatmap_frame_collection = np.roll(heatmap_frame_collection, -1, axis=0)
+        #    heatmap_frame_collection[-1,:] = np.array(heatmap,ndmin=2)
 
-    heatmap = np.mean(heatmap_frame_collection,axis=0)
+        #heatmap = np.mean(heatmap_frame_collection,axis=0)
 
-    heat_thresh = apply_threshold(heatmap,0)
-    labels = label(heat_thresh)
+        heat_thresh = apply_threshold(heatmap,0)
+        labels = label(heat_thresh)
 
-    #draw_image = draw_labeled_bboxes(draw_image,labels)
-    draw_image = draw_boxes(draw_image, vehicle_collection.hot_windows)
+        draw_image = draw_labeled_bboxes(draw_image,labels)
+    #draw_image = draw_boxes(draw_image, vehicle_collection.hot_windows)
 
     #window_img = draw_boxes(draw_image, hot_windows_collection, color=(0, 0, 255), thick=6)
 
@@ -88,8 +88,6 @@ if __name__ == "__main__":
 
     heatmap_frame_collection = None
 
-
-
     #image = cv2.imread('./test_images/test1.jpg')
     #image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     #processed_image = process_image(image)
@@ -98,9 +96,9 @@ if __name__ == "__main__":
 
     #cv2.imwrite('../output_images/test2_applied_lane_lines.jpg', combo)
 
-    video_output = './project_video_calc_1.mp4'
-    #clip1 = VideoFileClip('./project_video.mp4')
-    clip1 = VideoFileClip('./test_video.mp4')
+    video_output = './project_video_calc_3.mp4'
+    clip1 = VideoFileClip('./project_video.mp4')
+    #clip1 = VideoFileClip('./test_video.mp4')
     #clip1 = VideoFileClip('../harder_challenge_video.mp4')
 
     white_clip_1 = clip1.fl_image(process_image)  # NOTE: this function expects color images!!
