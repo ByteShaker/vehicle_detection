@@ -73,43 +73,6 @@ def search_windows(img, windows, clf, scaler, color_space='RGB',
     current_window_area = ((0,0),(0,0))
     # 2) Iterate over all windows in the list
     for window in windows:
-        # 2.1) Detect Image area and perform Hog only once
-        current_window_shape = ((window[1][1] - window[0][1]),(window[1][0] - window[0][0])) #(delta_y,delta_x)
-
-        if (current_window_shape[0] != (current_window_area[1][1] - current_window_area[0][1])) & (hog_feat):
-            if color_space != 'RGB':
-                if color_space == 'HSV':
-                    feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
-                elif color_space == 'LUV':
-                    feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2LUV)
-                elif color_space == 'HLS':
-                    feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
-                elif color_space == 'YUV':
-                    feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2YUV)
-                elif color_space == 'YCrCb':
-                    feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2YCrCb)
-            else:
-                feature_image = np.copy(img)
-            current_window_area = ((0,window[0][1]),(feature_image.shape[1],window[1][1]))
-            test_area = feature_image[current_window_area[0][1]:current_window_area[1][1], current_window_area[0][0]:current_window_area[1][0]]
-            scale = min(test_area.shape[0], test_area.shape[1]) / 64  # at most 64 rows and columns
-            resized_test_area = cv2.resize(test_area, (np.int(test_area.shape[1] / scale), np.int(test_area.shape[0] / scale)))
-
-            if hog_channel == 'ALL':
-                hog_features = []
-                for channel in range(resized_test_area.shape[2]):
-                    hog_features.extend(get_hog_features(resized_test_area[:, :, channel],
-                                                         orient, pix_per_cell, cell_per_block,
-                                                         vis=False, feature_vec=False))
-            else:
-                hog_features = get_hog_features(resized_test_area[:, :, hog_channel], orient,
-                                                pix_per_cell, cell_per_block, vis=False, feature_vec=False)
-
-        #print(window)
-        hog_feature_window_start = int((window[0][0]/scale)/8)
-        extracted_hog_feature = np.array(hog_features)[:,hog_feature_window_start:hog_feature_window_start+7]
-        extracted_hog_feature = extracted_hog_feature.ravel()
-
         # 3) Extract the test window from original image
         test_img = cv2.resize(img[window[0][1]:window[1][1], window[0][0]:window[1][0]], (64, 64))
         # 4) Extract features for that window using single_img_features()
@@ -120,7 +83,47 @@ def search_windows(img, windows, clf, scaler, color_space='RGB',
                                        hog_channel=hog_channel, spatial_feat=spatial_feat,
                                        hist_feat=hist_feat, hog_feat=False)
 
-        features.append(extracted_hog_feature)
+        # 3.1) Detect Image area and perform Hog only once
+        current_window_shape = ((window[1][1] - window[0][1]), (window[1][0] - window[0][0]))  # (delta_y,delta_x)
+
+        if hog_feat:
+            if (current_window_shape[0] != (current_window_area[1][1] - current_window_area[0][1])):
+                if color_space != 'RGB':
+                    if color_space == 'HSV':
+                        feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+                    elif color_space == 'LUV':
+                        feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2LUV)
+                    elif color_space == 'HLS':
+                        feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
+                    elif color_space == 'YUV':
+                        feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2YUV)
+                    elif color_space == 'YCrCb':
+                        feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2YCrCb)
+                else:
+                    feature_image = np.copy(img)
+                current_window_area = ((0, window[0][1]), (feature_image.shape[1], window[1][1]))
+                test_area = feature_image[current_window_area[0][1]:current_window_area[1][1],
+                            current_window_area[0][0]:current_window_area[1][0]]
+                scale = min(test_area.shape[0], test_area.shape[1]) / 64  # at most 64 rows and columns
+                resized_test_area = cv2.resize(test_area,
+                                               (np.int(test_area.shape[1] / scale), np.int(test_area.shape[0] / scale)))
+
+                if hog_channel == 'ALL':
+                    hog_features = []
+                    for channel in range(resized_test_area.shape[2]):
+                        hog_features.extend(get_hog_features(resized_test_area[:, :, channel],
+                                                             orient, pix_per_cell, cell_per_block,
+                                                             vis=False, feature_vec=False))
+                else:
+                    hog_features = get_hog_features(resized_test_area[:, :, hog_channel], orient,
+                                                    pix_per_cell, cell_per_block, vis=False, feature_vec=False)
+
+                # print(window)
+            hog_feature_window_start = int((window[0][0] / scale) / pix_per_cell)
+            extracted_hog_feature = np.array(hog_features)[:, hog_feature_window_start:hog_feature_window_start + 7]
+            extracted_hog_feature = extracted_hog_feature.ravel()
+
+            features.append(extracted_hog_feature)
         features = np.concatenate(features)
         # 5) Scale extracted features to be fed to classifier
         test_features = scaler.transform(np.array(features).reshape(1, -1))

@@ -2,7 +2,7 @@ import glob
 import time
 import pickle
 
-from sklearn.svm import SVC
+from sklearn.svm import LinearSVC
 from sklearn.preprocessing import StandardScaler
 
 # NOTE: the next import is only valid for scikit-learn version <= 0.17
@@ -15,12 +15,12 @@ from detection_functions.feature_extraction import *
 class Vehicle_Classification():
     def __init__(self):
         self.color_space = 'LUV'  # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
-        self.orient = 12  # HOG orientations
+        self.orient = 8  # HOG orientations
         self.pix_per_cell = 8  # HOG pixels per cell
         self.cell_per_block = 2  # HOG cells per block
         self.hog_channel = 'ALL'  # Can be 0, 1, 2, or "ALL"
-        self.spatial_size = (32, 32)  # Spatial binning dimensions
-        self.hist_bins = 32  # Number of histogram bins
+        self.spatial_size = (8, 8)  # Spatial binning dimensions
+        self.hist_bins = 12   # Number of histogram bins
         self.spatial_feat = True  # Spatial features on or off
         self.hist_feat = True  # Histogram features on or off
         self.hog_feat = True  # HOG features on or off
@@ -39,13 +39,13 @@ class Vehicle_Classification():
 
         except:
             # Read in notcars
-            images = glob.glob('../data/non-vehicles/*/*.png')
+            images = glob.glob('./data/non-vehicles/*/*.png')
             notcars = []
             for image in images:
                 notcars.append(image)
 
             # Read in cars
-            images = glob.glob('../data/vehicles/*/*.png')
+            images = glob.glob('./data/vehicles/*/*.png')
             cars = []
             for image in images:
                 cars.append(image)
@@ -80,8 +80,8 @@ class Vehicle_Classification():
             print('Using:', self.orient, 'orientations', self.pix_per_cell,
                   'pixels per cell and', self.cell_per_block, 'cells per block')
             print('Feature vector length:', len(X_train[0]))
-            # Use a linear SVC
-            svc = SVC()
+            # Use a SVC
+            svc = LinearSVC()
             # Check the training time for the SVC
             t = time.time()
             svc.fit(X_train, y_train)
@@ -98,5 +98,5 @@ class Vehicle_Classification():
             with open(X_scaler_pickle, 'wb') as file:
                 pickle.dump(X_scaler, file, protocol=pickle.HIGHEST_PROTOCOL)
 
-        self.classifier = svc
-        self.X_scaler = X_scaler
+            self.classifier = svc
+            self.X_scaler = X_scaler

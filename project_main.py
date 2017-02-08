@@ -40,13 +40,15 @@ def process_image(raw_image, correct_distortion=False):
 
     draw_image = np.copy(process_image)
 
-    vehicle_collection.initalize_image(img_shape=process_image.shape, y_start_stop=[420, 720], xy_window=(360, 360), xy_overlap=(0.25, 0.9))
+    if vehicle_collection.image_initialized == False:
+        vehicle_collection.initalize_image(img_shape=process_image.shape, y_start_stop=[420, 720], xy_window=(360, 360), xy_overlap=(0.75, 0.85))
     vehicle_collection.find_hot_windows(process_image, vehicle_classification)
 
     #hot_window_frame_collection_conc = np.concatenate(hot_window_frame_collection)
     heatmap = np.zeros_like(process_image[:, :, 0]).astype(np.float)
     heatmap = add_heat(heatmap, vehicle_collection.hot_windows)
 
+    global heatmap_frame_collection
     if heatmap_frame_collection == None:
         heatmap_frame_collection = np.array(heatmap,ndmin=3)
     elif heatmap_frame_collection.shape[0] < 5:
@@ -57,10 +59,11 @@ def process_image(raw_image, correct_distortion=False):
 
     heatmap = np.mean(heatmap_frame_collection,axis=0)
 
-    heat_thresh = apply_threshold(heatmap,4)
+    heat_thresh = apply_threshold(heatmap,0)
     labels = label(heat_thresh)
 
-    draw_image = draw_labeled_bboxes(draw_image,labels)
+    #draw_image = draw_labeled_bboxes(draw_image,labels)
+    draw_image = draw_boxes(draw_image, vehicle_collection.hot_windows)
 
     #window_img = draw_boxes(draw_image, hot_windows_collection, color=(0, 0, 255), thick=6)
 
@@ -76,7 +79,7 @@ def process_image(raw_image, correct_distortion=False):
 
 if __name__ == "__main__":
     VERBOSE = True
-    LEARN_NEW_CLASSIFIER = False
+    LEARN_NEW_CLASSIFIER = True
 
     vehicle_classification = Vehicle_Classification()
     vehicle_classification.train_classifier(LEARN_NEW_CLASSIFIER)

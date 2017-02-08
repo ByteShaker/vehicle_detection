@@ -8,15 +8,15 @@ class Vehicle():
 
 class Vehicle_Collection():
     def __init__(self):
-        self.initalize_image = False
+        self.image_initialized = False
         self.img_shape = None
         self.precheck_windows = None
         self.hot_windows = None
 
         self.detected_vehicles = []
 
-    def initalize_image(self, img_shape=(720,1280), y_start_stop=[420, 720], xy_window=(360, 360), xy_overlap = (0.25, 0.9)):
-        self.initalize_image = True
+    def initalize_image(self, img_shape=(720,1280), y_start_stop=[420, 720], xy_window=(360, 360), xy_overlap = (0.5, 0.5)):
+        self.image_initialized = True
         self.img_shape = img_shape
         self.precheck_windows = slide_precheck(img_shape, y_start_stop=y_start_stop, xy_window=xy_window, xy_overlap = xy_overlap)
 
