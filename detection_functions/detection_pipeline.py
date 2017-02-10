@@ -6,6 +6,8 @@ import cv2
 from detection_functions.feature_extraction import *
 from toolbox.draw_on_image import *
 
+from detection_functions.sliding_window import *
+
 
 
 # Define a function to extract features from a single image window
@@ -153,6 +155,50 @@ def add_heat(heatmap, bbox_list):
         # Add += 1 for all pixels inside each bbox
         # Assuming each "box" takes the form ((x1, y1), (x2, y2))
         heatmap[box[0][1]:box[1][1], box[0][0]:box[1][0]] += 1
+
+    # Return updated heatmap
+    return heatmap
+
+def add_heat_labels(heatmap, bbox_list, labels):
+    bbox_list = np.array(bbox_list)
+
+    label_windows = return_labeled_windows(labels)
+
+    for car_number in range(0, labels[1]):
+        box_index = 0
+        delta_Y = 0
+        car_heatmap = np.zeros_like(heatmap)
+        # Iterate through list of bboxes
+        for box in bbox_list:
+            box_heatmap = np.zeros_like(heatmap)
+
+            if (box[1][0] <= (label_windows[car_number][1][0]+2)) & (box[0][0] >= (label_windows[car_number][0][0]-2)):
+                if delta_Y != box[1][1] - box[0][1]:
+                    box_index = box_index + 1
+
+                    delta_Y = box[1][1] - box[0][1]
+
+                # Add += 1 for all pixels inside each bbox
+                # Assuming each "box" takes the form ((x1, y1), (x2, y2))
+                box_heatmap[box[0][1]:box[1][1], box[0][0]:box[1][0]] += 1
+
+            car_heatmap = car_heatmap + box_heatmap
+
+            if delta_Y%2 == 0:
+                delta_Y = delta_Y + 1
+
+            car_heatmap = cv2.GaussianBlur(car_heatmap,(delta_Y*2+1,delta_Y),0)
+
+        if box_index > 0:
+            car_heatmap = car_heatmap / box_index
+
+            heatmap = heatmap + car_heatmap
+
+    return heatmap
+
+
+
+    heatmap = heatmap + temp_heatmap
 
     # Return updated heatmap
     return heatmap

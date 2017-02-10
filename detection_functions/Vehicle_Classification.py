@@ -15,8 +15,8 @@ from detection_functions.feature_extraction import *
 class Vehicle_Classification():
     def __init__(self):
         self.color_space = 'LUV'  # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
-        self.orient = 8  # HOG orientations
-        self.pix_per_cell = 4  # HOG pixels per cell
+        self.orient = 12  # HOG orientations
+        self.pix_per_cell = 8  # HOG pixels per cell
         self.cell_per_block = 2  # HOG cells per block
         self.hog_channel = '0'  # Can be 0, 1, 2, or "ALL"
         self.spatial_size = (32, 32)  # Spatial binning dimensions

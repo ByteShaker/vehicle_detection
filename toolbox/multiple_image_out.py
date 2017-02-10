@@ -80,12 +80,14 @@ def image_cluster(img_list=[], img_text=False, new_img_shape=None, cluster_shape
 if __name__ == "__main__":
     # Read in the image
 
-    img1 = cv2.imread('../test_images/straight_lines1.jpg')
-    img2 = cv2.imread('../test_images/straight_lines2.jpg')
+    img1 = cv2.imread('../output_images/test1_detected.jpg')
+    img2 = cv2.imread('../output_images/test3_detected.jpg')
+    img3 = cv2.imread('../output_images/test4_detected.jpg')
+    img4 = cv2.imread('../output_images/test5_detected.jpg')
 
     #new_image = two_images(img1,img2)
 
-    new_image = image_cluster([img1, img2], img_text=['Image 1','Image 2'])
+    new_image = image_cluster([img1, img2, img3, img4], img_text=['Image 1','Image 2', 'Image 3','Image 4'])
 
     #new_image = cv2.resize(new_image, (256 * 5, 72 * 5))
     #new_image = cv2.resize(new_image, None, fx=.5, fy=.5, interpolation=cv2.INTER_CUBIC)
@@ -93,6 +95,7 @@ if __name__ == "__main__":
     cv2.imshow('Two Images', new_image)
     cv2.waitKey(0)
 
+    cv2.imwrite('../output_images/detected_examples.jpg', new_image)
 
 
 

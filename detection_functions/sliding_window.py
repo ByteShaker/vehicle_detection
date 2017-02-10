@@ -23,7 +23,7 @@ def slide_window(img_shape, x_start_stop=[None, None], y_start_stop=[None, None]
     nx_pix_per_step = np.int(xy_window[0] * (1 - xy_overlap[0]))
     ny_pix_per_step = np.int(xy_window[1] * (1 - xy_overlap[1]))
     # Compute the number of windows in x/y
-    nx_windows = np.int((xspan-xy_window[0]) / nx_pix_per_step)+2#+1
+    nx_windows = np.int((xspan-xy_window[0]) / nx_pix_per_step)+1
     ny_windows = np.int((yspan-xy_window[1]) / ny_pix_per_step)+1
     # Initialize a list to append window positions to
     window_list = []
@@ -48,49 +48,74 @@ def slide_window(img_shape, x_start_stop=[None, None], y_start_stop=[None, None]
     # Return the list of windows
     return window_list
 
+def return_labeled_windows(labels):
+    bbox_collection = []
+    for car_number in range(1, labels[1]+1):
+        # Find pixels with each car_number label value
+        nonzero = (labels[0] == car_number).nonzero()
+        # Identify x and y values of those pixels
+        nonzeroy = np.array(nonzero[0])
+        nonzerox = np.array(nonzero[1])
+        # Define a bounding box based on min/max x and y
+        bbox = ((np.min(nonzerox)-1, np.min(nonzeroy)-1), (np.max(nonzerox)+1, np.max(nonzeroy)+1))
+
+        bbox_collection.append(bbox)
+
+    return bbox_collection
+
 def perspective_width(new_y,y_start_stop=[420, 720],bottom_width=360, top_width=32):
     new_width = int(((1. - ((y_start_stop[1] - new_y) / (y_start_stop[1] - y_start_stop[0]))) * (bottom_width - top_width)) + top_width)
     return int(new_width)
 
-def slide_precheck(img_shape, y_start_stop=[436, 720], xy_window=(440, 440), xy_overlap = (0.0, 0.8)):
+def slide_precheck(img_shape, y_start_stop=[440, 720], xy_window_start=(440, 440), xy_overlap = (0.0, 0.8)):
+    shifted_collection = []
+    #dead_step_y = int(xy_window_start[1] * (1.0 - xy_overlap[1]))
+    for shift in range(10):
+        y_position = y_start_stop[1]
+        x_position = 0
+        xy_window = xy_window_start
 
-    y_position = y_start_stop[1]
-    x_position = 0
-    bottom_width = xy_window[0]
+        windows_collection = []
 
-    windows_collection = []
+        while (xy_window[0] >= 64):
+            dead_step_x = int(xy_window[0] * (1.0 - xy_overlap[0]) * shift / 10)
+            dead_x_position = x_position + dead_step_x
+            y_step = int(xy_window[0] * (1.0 - xy_overlap[1]))
 
-    while (xy_window[0] >= 50):
-        y_step = int(xy_window[0] * (1.0 - xy_overlap[1]))
+            windows = slide_window(img_shape, x_start_stop=[dead_x_position, img_shape[1]-x_position],
+                                               y_start_stop=[y_position - xy_window[0], y_position],
+                                               xy_window=xy_window, xy_overlap=xy_overlap)
 
-        windows = slide_window(img_shape, x_start_stop=[x_position, img_shape[1]-x_position],
-                                           y_start_stop=[y_position - xy_window[0], y_position],
-                                           xy_window=xy_window, xy_overlap=xy_overlap)
-
-        y_position = y_position - y_step
-        width = perspective_width(y_position,y_start_stop=y_start_stop,bottom_width=bottom_width, top_width=32)
-        xy_window = (width, width)
+            y_position = y_position - y_step
+            width = perspective_width(y_position,y_start_stop=y_start_stop,bottom_width=xy_window_start[1], top_width=32)
+            xy_window = (width, width)
 
 
 
-        x_width = perspective_width(y_position,y_start_stop=y_start_stop,bottom_width=img_shape[1]*15, top_width=32*15)
+            x_width = perspective_width(y_position,y_start_stop=y_start_stop,bottom_width=img_shape[1]*15, top_width=32*15)
 
-        if x_width > (img_shape[1]):
-            x_position = 0
-        else:
-            x_position = int((img_shape[1] - x_width)/2)
+            if x_width > (img_shape[1]):
+                x_position = 0
+            else:
+                x_position = int((img_shape[1] - x_width)/2)
 
-        windows_collection.append(windows)
+            windows_collection.append(windows)
 
-    return windows_collection
+        shifted_collection.append(windows_collection)
+    return shifted_collection
 
 
 if __name__ == "__main__":
 
     image = cv2.imread('../test_images/test1.jpg')
     img_shape = image.shape
-    windows_collection = slide_precheck(img_shape)
+    shifted_collection = slide_precheck(img_shape)
 
-    windows_collection = draw_boxes(image, windows_collection)
-    cv2.imshow('windows_collection', windows_collection)
-    cv2.waitKey()
+    for shift in shifted_collection:
+        print(len(shift))
+        for stripe in shift:
+            image = draw_boxes(image, stripe)
+        cv2.imshow('shifted_collection', image)
+
+        cv2.imwrite('../output_images/sliding_windows.jpg', image)
+        cv2.waitKey(2000)
