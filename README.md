@@ -18,9 +18,6 @@ The goals / steps of this project are the following:
 [image1]: ./examples/car_not_car.png
 [image3]: ./output_images/sliding_windows.jpg
 [image4]: ./output_images/detected_examples.jpg
-[image5]: ./examples/bboxes_and_heat.png
-[image6]: ./examples/labels_map.png
-[image7]: ./examples/output_bboxes.png
 [video1]: ./project_video.mp4
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
